@@ -70,9 +70,6 @@ def generate_profile():
 
 @app.route('/get_profile/<filename>', methods=['GET'])
 def get_profile(filename):
-    if not session.get('authenticated'):
-        error = 'ログインされていません'
-        return render_template('login.html', error=error)
     # Redisから指定されたファイル名のデータを取得
     data = redis_client.get(filename)
 
