@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Cityroamプロファイルプロビジョニングシステム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+        }
+
+        .container {
+            max-width: 400px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        p {
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        a {
+            display: none;
+            margin-top: 10px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .download-message {
+            display: none;
+            color: green;
+        }
+
+        .logout-link {
+            display: block;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .divider {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border: none;
+            border-top: 1px solid #ccc;
+        }
+
+        .download-link {
+            display: none;
+            margin-top: 10px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
+        }
+
+        .download-link.visible {
+            display: inline-block;
+        }
+    </style>
+<script>
+    function generateProfile() {
+        var ukey = "{{ ukey }}";
+
+        fetch('/generate_profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ukey: ukey })
+        })
+        .then(response => {
+            response.json().then(data => {
+                var filename = data.filename;
+
+                // 新しいエンドポイントを呼び出してXMLファイルを取得
+                fetch('/get_profile/' + filename)
+                .then(response => {
+                    if (response.ok) {
+                        var headers = response.headers;
+                        var contentDisposition = headers.get('Content-Disposition');
+                        var filenameMatch = contentDisposition.match(/filename=([^;]+)/);
+                        var downloadButton = document.getElementById('downloadButton');
+                        var downloadMessage = document.getElementById('downloadMessage');
+
+                        if (filenameMatch) {
+                            var filename = filenameMatch[1];
+                            downloadButton.setAttribute('download', filename);
+                        }
+
+                        downloadButton.classList.add('visible');
+                        downloadMessage.style.display = 'block';
+
+                        // ファイルをダウンロードするためのURLを生成
+                        var appUrl = "{{ request.url_root.rstrip('/') }}/";
+                        var downloadUrl = appUrl + 'get_profile/' + filename;
+                        var wifiProvisioningUrl = "ms-settings:wifi-provisioning?uri=" + downloadUrl;
+
+                        downloadButton.setAttribute('href', wifiProvisioningUrl);
+                        console.log('Cityroam接続設定の生成が成功しました');
+                    } else {
+                        console.error('Cityroam接続設定の生成中にエラーが発生しました');
+                    }
+                })
+                .catch(error => {
+                    console.error('Cityroam接続設定の生成中にエラーが発生しました', error);
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Cityroam接続設定の生成中にエラーが発生しました', error);
+        });
+    }
+</script>
+</head>
+<body>
+    <div class="container">
+        <h1>Home</h1>
+        <p>こんにちは、{{ username }}さん。</p>
+        <button onclick="generateProfile()">Cityroam接続設定の作成</button>
+        <p class="download-message" id="downloadMessage">Cityroam接続設定の準備ができました。以下のリンクをクリックして、接続設定をPCに追加してください。</p>
+        <a class="download-link" id="downloadButton">Cityroam接続設定をPCに追加</a>
+        <hr class="divider">
+        <a href="/logout" class="logout-link">ログアウト</a>
+    </div>
+</body>
+</html>
+
