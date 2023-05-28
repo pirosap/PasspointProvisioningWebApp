@@ -35,6 +35,9 @@ PasspointProvisioningWebApp/template/home.html
 helper/generate_profile.pl
 - PasspointProvisioningTools におけるpasspoint-win.config
 
+helper/generate_profile_ios.pl
+- PasspointProvisioningTools におけるpasspoint.mobileconfig
+
 helper/pp-common.cfg
 - プロファイル内部の値の初期値
 
