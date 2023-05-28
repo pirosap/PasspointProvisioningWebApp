@@ -84,17 +84,29 @@
         .download-link.visible {
             display: inline-block;
         }
+
     </style>
 <script>
     function generateProfile() {
         var ukey = "{{ ukey }}";
+        var clientType = "{{ client_type }}";
 
-        fetch('/generate_profile', {
+        var endpoint = '/generate_profile'; 
+
+        if (clientType === 'Windows') {
+            endpoint = '/generate_profile';  // Windows用のエンドポイント
+        } else if (clientType === 'Android') {
+            endpoint = '/generate_profile';  // Android用のエンドポイント
+        } else if (clientType === 'iOS') {
+            endpoint = '/generate_profile';  // iOS用のエンドポイント
+        }
+
+        fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ ukey: ukey })
+            body: JSON.stringify({ ukey: ukey, client_type: clientType })
         })
         .then(response => {
             response.json().then(data => {
@@ -121,7 +133,13 @@
                         // ファイルをダウンロードするためのURLを生成
                         var appUrl = "{{ request.url_root.rstrip('/') }}/";
                         var downloadUrl = appUrl + 'get_profile/' + filename;
-                        var wifiProvisioningUrl = "ms-settings:wifi-provisioning?uri=" + downloadUrl;
+                        var wifiProvisioningUrl = "";
+
+                        if (filename.endsWith('.xml')) {
+                            wifiProvisioningUrl = "ms-settings:wifi-provisioning?uri=" + downloadUrl;
+                        } else {
+                            wifiProvisioningUrl = downloadUrl;
+                        }
 
                         downloadButton.setAttribute('href', wifiProvisioningUrl);
                         console.log('Cityroam接続設定の生成が成功しました');
@@ -142,11 +160,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>Home</h1>
+        <h1>Home (For {{ client_type }})</h1>
         <p>こんにちは、{{ username }}さん。</p>
         <button onclick="generateProfile()">Cityroam接続設定の作成</button>
-        <p class="download-message" id="downloadMessage">Cityroam接続設定の準備ができました。以下のリンクをクリックして、接続設定をPCに追加してください。</p>
-        <a class="download-link" id="downloadButton">Cityroam接続設定をPCに追加</a>
+        <p class="download-message" id="downloadMessage">Cityroam接続設定の準備ができました。以下のリンクをクリックして、接続設定を{{ client_type }}に追加してください。</p>
+        <a class="download-link" id="downloadButton">Cityroam接続設定を{{ client_type }}に追加</a>
         <hr class="divider">
         <a href="/logout" class="logout-link">ログアウト</a>
     </div>
