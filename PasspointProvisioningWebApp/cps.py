@@ -38,16 +38,35 @@ app.config['MYSQL_DB'] = MYSQL_DB
 mysql = MySQL(app)
 
 script_path = '/path/to/helper/generate_profile.pl'
+windows_script_path = '/path/to/helper/generate_profile.pl'
+android_script_path = '/path/to/helper/generate_profile.pl'
+ios_script_path = '/path/to/helper/generate_profile_ios.pl'
 
 @app.route('/generate_profile', methods=['POST'])
 def generate_profile():
     data = request.get_json()
     ukey = data['ukey']
+    client_type = data['client_type']
     username = session.get('username', '')
     password = session.get('password', '')
 
-    # ukey, username, passwordを引数として外部のPerlスクリプトを実行
-    cmd = ['perl', script_path, username, password]
+    # クライアントの種別に応じた処理を実行
+    if client_type == 'Windows':
+        # Windows用の処理
+        cmd = ['perl', windows_script_path, username, password]
+        file_extension = 'xml'
+    elif client_type == 'Android':
+        # Android用の処理
+        cmd = ['perl', android_script_path, username, password]
+        file_extension = 'config'
+    elif client_type == 'iOS/macOS':
+        # iOS/macOS用の処理
+        cmd = ['perl', ios_script_path, username, password]
+        file_extension = 'mobileconfig'
+    else:
+        # クライアントの種別が不正な場合の処理
+        return jsonify(error='Invalid client type'), 400
+
     result = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
 
     # 実行結果を受け取る
@@ -55,7 +74,8 @@ def generate_profile():
 
     # ランダムな一意の文字列をファイル名に組み込む
     session_id = str(uuid.uuid4())
-    filename = f'passpoint_{session_id}.xml'
+    #filename = f'passpoint_{session_id}.xml'
+    filename = f'passpoint_{session_id}.{file_extension}'
 
     # XMLデータをRedisに保存
     redis_client.set(filename, output)
@@ -70,21 +90,59 @@ def generate_profile():
 
 @app.route('/get_profile/<filename>', methods=['GET'])
 def get_profile(filename):
-    # Redisから指定されたファイル名のデータを取得
-    data = redis_client.get(filename)
+    file_extension = os.path.splitext(filename)[1]
 
-    if data is not None:
-        # データが存在する場合はXMLファイルとしてレスポンスを返す
-        response = send_file(
-            io.BytesIO(data),
-            mimetype='application/xml',
-            as_attachment=True,
-            download_name=filename
-        )
-        return response
+    if file_extension == '.xml':
+        # Redisから指定されたファイル名のデータを取得
+        data = redis_client.get(filename)
+
+        if data is not None:
+            # データが存在する場合はXMLファイルとしてレスポンスを返す
+            response = send_file(
+                io.BytesIO(data),
+                mimetype='application/xml',
+                as_attachment=True,
+                download_name=filename
+            )
+            return response
+        else:
+            # データが存在しない場合はエラーを返す
+            return jsonify({'error': 'File not found'}), 404
+    elif file_extension == '.config':
+        # Redisから指定されたファイル名のデータを取得
+        data = redis_client.get(filename)
+
+        if data is not None:
+            # ファイル名の拡張子が.configの場合はapplication/x-wifi-configとしてレスポンスを返す
+            response = send_file(
+                io.BytesIO(data),
+                mimetype='application/x-wifi-config',
+                as_attachment=True,
+                download_name=filename
+            )
+            return response
+        else:
+            # データが存在しない場合はエラーを返す
+            return jsonify({'error': 'File not found'}), 404
+    elif file_extension == '.mobileconfig':
+        # Redisから指定されたファイル名のデータを取得
+        data = redis_client.get(filename)
+
+        if data is not None:
+            # ファイル名の拡張子が.mobileconfigの場合はapplication/x-apple-aspen-configとしてレスポンスを返す
+            response = send_file(
+                io.BytesIO(data),
+                mimetype='application/x-apple-aspen-config',
+                as_attachment=True,
+                download_name=filename
+            )
+            return response
+        else:
+            # データが存在しない場合はエラーを返す
+            return jsonify({'error': 'File not found'}), 404
     else:
-        # データが存在しない場合はエラーを返す
-        return jsonify({'error': 'File not found'}), 404
+        # サポートされていないファイル拡張子の場合はエラーを返す
+        return jsonify({'error': 'Unsupported file extension'}), 400
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -106,6 +164,17 @@ def login():
                 # 認証成功した場合、セッションにユーザー名を保存します
                 session['username'] = username
                 session['password'] = password
+                # クライアントの種別を判定してセッションに保存します
+                user_agent = request.headers.get('User-Agent', '')
+                if 'Windows' in user_agent:
+                    session['client_type'] = 'Windows'
+                elif 'iPhone' in user_agent or 'iPad' in user_agent or 'Mac' in user_agent:
+                    session['client_type'] = 'iOS/macOS'
+                elif 'Android' in user_agent:
+                    session['client_type'] = 'Android'
+                else:
+                    session['client_type'] = 'Unknown'
+
                 session['authenticated'] = True
                 return redirect(url_for('home'))
             else:
@@ -121,28 +190,23 @@ def login():
 
 @app.route('/home')
 def home():
-    if 'username' in session:
+    if session.get('authenticated'):
         username = session.get('username', '')
         password = session.get('password', '')
 
-        # ユーザーが認証された場合にのみ実行
-        if session.get('authenticated'):
-            # キーが存在しない場合のみ実行
-            if not redis_client.exists(username):
-                # ランダムなキーを生成
-                ukey = generate_key(20)
-
-                # RedisにキーとユーザーIDをセット（NXオプションとTTLを指定）
-                redis_client.set(username, ukey, nx=True, ex=60)
-
-            # キーをテンプレートに渡す
+        if redis_client.exists(username):
             ukey = redis_client.get(username).decode('utf-8')
         else:
-            ukey = None
+            # キーが存在しない場合の処理
+            ukey = generate_key(20)
+            redis_client.set(username, ukey, nx=True, ex=60)
 
-        return render_template('home.html', username=username, password=password, ukey=ukey)
+        # クライアントの種別をセッションから取得します
+        client_type = session.get('client_type')
 
-    # 認証されていないユーザーはログイン画面にリダイレクトします
+        # レンダリングするテンプレートにクライアントの種別を渡します
+        return render_template('home.html', username=username, password=password, ukey=ukey, client_type=client_type)
+
     return redirect(url_for('login'))
 
 @app.route('/logout')
