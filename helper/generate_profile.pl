@@ -44,7 +44,7 @@ my $anonID = $userID;
 $anonID =~ s/^.*@/anonymous@/;	# outer identity
 
 # include common settings
-require '/path/to/helper/pp-common.cfg';
+require '/home/computercenter/PPWP/helper/pp-common.cfg';
 
 
 #---- Profile composition part ----
