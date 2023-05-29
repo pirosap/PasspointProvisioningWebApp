@@ -34,23 +34,13 @@ use Data::UUID;
 #---- Configuration part ----
 
 # include common settings
-require '/home/computercenter/PPWP/helper//pp-common.cfg';
+require '/path/tohelper/pp-common.cfg';
 
 #### Add your own code here to set ID/PW. ####
 my ($userID, $passwd) = @ARGV;
 
-# External code that sets $userID, $passwd, and optionally $ExpirationDate
-#require '../etc/getuserinfo.pl';
-#if (&getuserinfo($ENV{'REMOTE_USER'})) {
-#    exit(1);
-#}
-
 my $uname   = $anonID = $userID;
 $anonID =~ s/^.*@/anonymous@/;
-
-# To omit signing, uncomment this.
-#$signercert  = '';
-#$signerchain = '';
 
 #---- Profile composition part ----
 # (no need to edit below, hopefully)
@@ -215,18 +205,6 @@ print <<EOS;
 Content-Type: application/x-apple-aspen-config
 
 EOS
-
-#if ($signercert eq '') {
-    print $xmltext;
-#} else {
-#    if ($signerchain eq '') {
-#        open(fh, "| openssl smime -sign -nodetach -signer $signercert -inkey $signerkey -outform der");
-#    } else {
-#        open(fh, "| openssl smime -sign -nodetach -certfile /home/computercenter/PPWP/helper/chain.pem -signer $signercert -inkey $signerkey -outform der");
-#    }
-#    print fh $xmltext;
-#    close(fh);
-#}
 
 exit(0);
 
