@@ -38,6 +38,9 @@ helper/generate_profile.pl
 helper/generate_profile_ios.pl
 - PasspointProvisioningTools におけるpasspoint.mobileconfig
 
+helper/generate_profile_android.pl
+- PasspointProvisioningTools におけるpasspoint-android.config
+
 helper/pp-common.cfg
 - プロファイル内部の値の初期値
 
