@@ -160,7 +160,7 @@ chomp($xmlb64);
 $cert = '';
 $inside_section = 0;
 
-open my $fh, '<', $CAfile_android;
+open my $fh, '<', $CAfile;
 while(<$fh>){
     if ( $_ =~ /BEGIN\s+CERTIFICATE/ ){
         $inside_section = 1;
