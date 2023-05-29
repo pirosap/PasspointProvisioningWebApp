@@ -16,7 +16,7 @@ Tools and example codes for Passpoint profile provisioning, mainly for OpenRoami
 ## 想定している構成
 - IdP側 FreeRADIUS Version 3.2.2 / MariaDB 10.5.16 / 
 - 本アプリ側 Redis 6.2.7 / Python 3.9.16 / (Dev server) Flask 2.3.2
-- クライアントは、Windows11 22H2以降/ iOS/iPadOS 14以降, macOS 10以降であること
+- クライアントは、Windows11 22H2以降, iOS/iPadOS 14以降, macOS 10以降であること
 
 ## 試し方
 MariaDB上のradiusデータベース内のradcheckテーブルに保存されているusername/passwordの組み合わせでログインして、Cityroam用のPasspointプロファイルを発行することができます。  
