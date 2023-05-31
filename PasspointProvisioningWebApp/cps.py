@@ -155,7 +155,8 @@ def login():
 
         # ユーザー名とNT-Passwordを照合するためにデータベースから検索します
         cur = mysql.connection.cursor()
-        cur.execute("SELECT * FROM radcheck WHERE username = %s AND attribute = 'NT-Password'", (username,))
+        query = "SELECT * FROM radcheck WHERE username = %s AND attribute = 'NT-Password'"
+        cur.execute(query, (username,))
         user = cur.fetchone()
 
         if user:
@@ -163,7 +164,7 @@ def login():
             if nt_password_hash(password) == bytes.fromhex(db_password):
                 # 認証成功した場合、セッションにユーザー名を保存します
                 session['username'] = username
-                session['password'] = password
+                session['password'] = nt_password_hash(password)
                 # クライアントの種別を判定してセッションに保存します
                 user_agent = request.headers.get('User-Agent', '')
                 if 'Windows' in user_agent:
@@ -176,14 +177,17 @@ def login():
                     session['client_type'] = 'Unknown'
 
                 session['authenticated'] = True
+                cur.close()
                 return redirect(url_for('home'))
             else:
                 # パスワードが誤っている場合のエラーメッセージを表示します
                 error = 'ユーザー名が見つからないか、パスワードが誤っています。'
+                conn.close()
                 return render_template('login.html', error=error)
         else:
             # ユーザーが見つからない場合のエラーメッセージを表示します
             error = 'ユーザー名が見つからないか、パスワードが誤っています。'
+            conn.close()
             return render_template('login.html', error=error)
 
     return render_template('login.html')
