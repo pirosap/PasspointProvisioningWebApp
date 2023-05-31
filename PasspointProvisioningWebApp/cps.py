@@ -164,7 +164,7 @@ def login():
             if nt_password_hash(password) == bytes.fromhex(db_password):
                 # 認証成功した場合、セッションにユーザー名を保存します
                 session['username'] = username
-                session['password'] = nt_password_hash(password)
+                session['password'] = password
                 # クライアントの種別を判定してセッションに保存します
                 user_agent = request.headers.get('User-Agent', '')
                 if 'Windows' in user_agent:
