@@ -39,7 +39,7 @@ mysql = MySQL(app)
 
 script_path = '/path/to/helper/generate_profile.pl'
 windows_script_path = '/path/to/helper/generate_profile.pl'
-android_script_path = '/path/to/helper/generate_profile.pl'
+android_script_path = '/path/to/helper/generate_profile_android.pl'
 ios_script_path = '/path/to/helper/generate_profile_ios.pl'
 
 @app.route('/generate_profile', methods=['POST'])
